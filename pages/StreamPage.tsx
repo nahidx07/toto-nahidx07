@@ -90,25 +90,7 @@ const StreamPage: React.FC = () => {
                 </div>
               </div>
             </div>
-
-            <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-6 pt-8 border-t border-slate-800/50">
-               <div className="space-y-1">
-                  <p className="text-slate-600 text-[8px] font-black uppercase tracking-widest">Global XP Rate</p>
-                  <p className="text-sm font-bold text-blue-400">+5 XP / 30s</p>
-               </div>
-               <div className="space-y-1">
-                  <p className="text-slate-600 text-[8px] font-black uppercase tracking-widest">Quality Stream</p>
-                  <p className="text-sm font-bold text-slate-200">Ultra HD 4K</p>
-               </div>
-               <div className="space-y-1">
-                  <p className="text-slate-600 text-[8px] font-black uppercase tracking-widest">AI Analyst</p>
-                  <p className="text-sm font-bold text-indigo-400">Enabled</p>
-               </div>
-               <div className="space-y-1">
-                  <p className="text-slate-600 text-[8px] font-black uppercase tracking-widest">Chat Status</p>
-                  <p className="text-sm font-bold text-green-400 uppercase">Secure</p>
-               </div>
-            </div>
+            {/* The information grid section has been removed from here for a cleaner look */}
           </div>
         </div>
 
