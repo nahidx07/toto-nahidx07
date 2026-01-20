@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Match } from '../types';
+import { Match, StreamType } from '../types';
 import { dbOps } from '../firebase';
 import { useAuth } from '../App';
 import VideoPlayer from '../components/VideoPlayer';
@@ -13,6 +13,7 @@ const StreamPage: React.FC = () => {
   const { user } = useAuth();
   const [match, setMatch] = useState<Match | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeServer, setActiveServer] = useState<1 | 2>(1);
 
   useEffect(() => {
     if (id) {
@@ -61,16 +62,38 @@ const StreamPage: React.FC = () => {
     );
   }
 
+  // Determine current active stream details
+  const currentUrl = activeServer === 1 ? match.streamUrl : (match.streamUrl2 || match.streamUrl);
+  const currentType = activeServer === 1 ? match.streamType : (match.streamType2 || match.streamType);
+
   return (
     <div className="max-w-7xl mx-auto space-y-4 animate-in slide-in-from-bottom-6 duration-700">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
-          <VideoPlayer url={match.streamUrl} type={match.streamType} matchId={match.id} />
+          <VideoPlayer url={currentUrl} type={currentType} matchId={match.id} key={`${match.id}-${activeServer}`} />
           
-          <div className="bg-slate-900/40 backdrop-blur-md rounded-[20px] p-4 border border-slate-800/60">
-            <h1 className="text-lg font-bold text-slate-100">
+          <div className="bg-slate-900/40 backdrop-blur-md rounded-[20px] p-5 border border-slate-800/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h1 className="text-lg font-bold text-slate-100 flex-1">
               {match.title}
             </h1>
+            
+            {/* Server Switching Section */}
+            <div className="flex items-center gap-2 p-1 bg-slate-950/60 border border-slate-800 rounded-xl">
+               <button 
+                  onClick={() => setActiveServer(1)}
+                  className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeServer === 1 ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-500 hover:text-slate-300'}`}
+               >
+                 Server 01
+               </button>
+               {match.streamUrl2 && (
+                 <button 
+                    onClick={() => setActiveServer(2)}
+                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeServer === 2 ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-500 hover:text-slate-300'}`}
+                 >
+                   Server 02
+                 </button>
+               )}
+            </div>
           </div>
         </div>
 
