@@ -53,10 +53,6 @@ if (isFirebaseConfigured) {
 
 export { db, auth, googleProvider };
 
-/**
- * Deep Sanitizer: Removes all non-serializable Firestore metadata.
- * This effectively prevents "Circular structure to JSON" errors.
- */
 const sanitize = (val: any): any => {
   if (val === null || typeof val !== 'object') return val;
   if (val instanceof Date) return val.getTime();
@@ -67,7 +63,6 @@ const sanitize = (val: any): any => {
   const cleaned: any = {};
   for (const key in val) {
     if (Object.prototype.hasOwnProperty.call(val, key)) {
-      // Specifically skip internal Firestore objects
       if (key.startsWith('_') || key === 'firestore' || typeof val[key] === 'function') continue;
       cleaned[key] = sanitize(val[key]);
     }
@@ -82,6 +77,18 @@ export const dbOps = {
       const docSnap = await getDoc(doc(db, "users", uid));
       return docSnap.exists() ? sanitize(docSnap.data()) as User : null;
     } catch (e) { return null; }
+  },
+
+  // Added Real-time User Subscription
+  subscribeUser(uid: string, callback: (user: User | null) => void) {
+    if (!db) return () => {};
+    return onSnapshot(doc(db, "users", uid), (snap) => {
+      if (snap.exists()) {
+        callback(sanitize(snap.data()) as User);
+      } else {
+        callback(null);
+      }
+    });
   },
 
   async upsertUser(user: Partial<User>) {
