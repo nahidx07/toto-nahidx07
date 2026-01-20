@@ -1,8 +1,0 @@
-{
-  "name": "Toto Stream",
-  "description": "A high-performance live sports streaming platform for Web and Telegram Mini Apps, featuring real-time XP ranking, live chat, and an integrated admin panel.",
-  "requestFramePermissions": [
-    "camera",
-    "microphone"
-  ]
-}
