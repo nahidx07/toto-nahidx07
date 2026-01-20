@@ -3,13 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { dbOps } from '../firebase';
 import { Match, StreamType, User, PlatformSettings } from '../types';
 import { useAuth } from '../App';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const AdminPanel: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [matches, setMatches] = useState<Match[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
   const [settings, setSettings] = useState<PlatformSettings>({
     logoUrl: '',
     telegramLink: ''
@@ -30,25 +29,40 @@ const AdminPanel: React.FC = () => {
   });
 
   useEffect(() => {
-    if (!user?.isAdmin) navigate('/');
-    
-    // Subscribe to matches
-    const unsubMatches = dbOps.subscribeMatches(setMatches);
-    
-    // Fetch settings
-    dbOps.getSettings().then(setSettings);
+    if (user && user.isAdmin) {
+      // Subscribe to matches only if admin
+      const unsubMatches = dbOps.subscribeMatches(setMatches);
+      // Fetch settings
+      dbOps.getSettings().then(setSettings);
+      return () => unsubMatches();
+    }
+  }, [user]);
 
-    // Initial data load for users (not real-time for now to save reads)
-    loadUsers();
+  if (!user) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+        <p className="text-slate-400 font-bold uppercase tracking-widest">Please Login to Access Command Center</p>
+        <Link to="/login" className="bg-blue-600 text-white px-6 py-2 rounded-xl font-black text-xs uppercase">Login</Link>
+      </div>
+    );
+  }
 
-    return () => unsubMatches();
-  }, [user, navigate]);
-
-  const loadUsers = async () => {
-    // Note: In real production, you'd use a paginated query for users
-    // For this prototype, we'll assume a small list or a specific fetch
-    // Adding a simple get all users would require a new dbOps method
-  };
+  if (!user.isAdmin) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6">
+        <div className="bg-red-500/10 text-red-500 p-6 rounded-[40px] border border-red-500/20 max-w-md">
+          <svg className="w-16 h-16 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <h2 className="text-2xl font-black text-white mb-2 uppercase">Access Denied</h2>
+          <p className="text-slate-400 text-sm mb-6">
+            You do not have administrative privileges. To become an admin, set <code className="bg-slate-800 px-1 rounded text-red-400">isAdmin: true</code> for your UID in the Firebase Console.
+          </p>
+          <button onClick={() => navigate('/')} className="text-blue-500 font-black uppercase text-xs tracking-widest hover:underline">Return to Arena</button>
+        </div>
+      </div>
+    );
+  }
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,7 +109,6 @@ const AdminPanel: React.FC = () => {
         </div>
         <div className="flex gap-2 p-1.5 bg-slate-800 rounded-2xl overflow-x-auto scrollbar-hide">
            <button onClick={() => setActiveTab('matches')} className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${activeTab === 'matches' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-400'}`}>Streams</button>
-           <button onClick={() => setActiveTab('users')} className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${activeTab === 'users' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-400'}`}>Users</button>
            <button onClick={() => setActiveTab('settings')} className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-400'}`}>Settings</button>
         </div>
       </div>
@@ -130,12 +143,6 @@ const AdminPanel: React.FC = () => {
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {activeTab === 'users' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-10 text-center">
-          <p className="text-slate-400">User management module is being connected to Firebase Auth Admin.</p>
         </div>
       )}
 
