@@ -67,20 +67,13 @@ const StreamPage: React.FC = () => {
         <div className="lg:col-span-2 space-y-4">
           <VideoPlayer url={match.streamUrl} type={match.streamType} matchId={match.id} />
           
-          <div className="bg-slate-900/40 backdrop-blur-md rounded-[24px] p-5 border border-slate-800/60">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <span className="bg-red-600 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1 shadow-lg shadow-red-900/10">
-                  <span className="w-1 h-1 bg-white rounded-full animate-pulse"></span> Live
-                </span>
-                <span className="bg-slate-800 text-slate-300 text-[8px] font-black uppercase px-2 py-0.5 rounded-md border border-slate-700">
-                   {match.watching.toLocaleString()} watching
-                </span>
-              </div>
-              <h1 className="text-xl font-black text-white italic tracking-tight leading-tight">
-                {match.title}
-              </h1>
-            </div>
+          <div className="bg-slate-900/40 backdrop-blur-md rounded-[24px] p-6 border border-slate-800/60">
+            <h1 className="text-2xl font-black text-white italic tracking-tight leading-tight">
+              {match.title}
+            </h1>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-2">
+              {match.sport} • {match.watching.toLocaleString()} active fans
+            </p>
           </div>
         </div>
 
