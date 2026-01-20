@@ -34,8 +34,12 @@ export interface Match {
   id: string;
   title: string;
   sport: 'Cricket' | 'Football' | 'Basketball' | 'Tennis' | 'Other';
+  // Server 1
   streamUrl: string;
   streamType: StreamType;
+  // Server 2 (Optional)
+  streamUrl2?: string;
+  streamType2?: StreamType;
   thumbnailUrl?: string;
   status: 'live' | 'upcoming' | 'ended';
   chatEnabled: boolean;
