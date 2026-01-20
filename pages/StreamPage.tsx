@@ -16,7 +16,7 @@ const StreamPage: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      // Use real-time subscription for match data (watching count, title, etc.)
+      // Use real-time subscription for match data
       const unsubscribe = dbOps.subscribeMatch(id, (updatedMatch) => {
         if (updatedMatch) {
           setMatch(updatedMatch);
@@ -67,13 +67,10 @@ const StreamPage: React.FC = () => {
         <div className="lg:col-span-2 space-y-4">
           <VideoPlayer url={match.streamUrl} type={match.streamType} matchId={match.id} />
           
-          <div className="bg-slate-900/40 backdrop-blur-md rounded-[24px] p-6 border border-slate-800/60">
-            <h1 className="text-2xl font-black text-white italic tracking-tight leading-tight">
+          <div className="bg-slate-900/40 backdrop-blur-md rounded-[20px] p-4 border border-slate-800/60">
+            <h1 className="text-lg font-bold text-slate-100">
               {match.title}
             </h1>
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-2">
-              {match.sport} • {match.watching.toLocaleString()} active fans
-            </p>
           </div>
         </div>
 
