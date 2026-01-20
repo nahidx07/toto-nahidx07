@@ -35,7 +35,7 @@ const ConfigWarning: React.FC = () => (
       </div>
       <h2 className="text-2xl font-black text-white italic">Firebase Setup Needed</h2>
       <p className="text-slate-400 text-sm leading-relaxed">
-        To activate <span className="text-blue-400 font-bold">Toto Stream</span>, you must add your Firebase credentials to <code className="bg-slate-800 px-1.5 py-0.5 rounded text-blue-300">firebase.ts</code>.
+        To activate your streaming platform, you must add your Firebase credentials to <code className="bg-slate-800 px-1.5 py-0.5 rounded text-blue-300">firebase.ts</code>.
       </p>
       <div className="bg-slate-950 p-4 rounded-2xl text-left border border-slate-800">
         <p className="text-[10px] font-black uppercase text-slate-500 mb-2">Instructions:</p>
@@ -52,40 +52,49 @@ const ConfigWarning: React.FC = () => (
 );
 
 const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
-  const [logo, setLogo] = useState('https://cdn-icons-png.flaticon.com/512/732/732232.png');
+  // Initialize with cached logo if available for instant show
+  const [logo, setLogo] = useState<string | null>(localStorage.getItem('toto_cached_logo'));
 
   useEffect(() => {
-    dbOps.getSettings().then(s => setLogo(s.logoUrl));
-    
-    // Simulate initial loading/setup time
+    // Background fetch to update cached logo and ensure it's current
+    dbOps.getSettings().then(s => {
+      setLogo(s.logoUrl);
+    });
+
+    // Exit splash after 2.5 seconds regardless of network speed
     const timer = setTimeout(() => {
       onComplete();
-    }, 3000);
-
+    }, 2500);
+    
     return () => clearTimeout(timer);
   }, [onComplete]);
 
   return (
     <div className="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-8 overflow-hidden">
-      {/* Dynamic Background Glow - Pulse Effect */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-blue-600/20 blur-[100px] rounded-full animate-pulse opacity-50"></div>
+      {/* Background Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-blue-600/10 blur-[100px] rounded-full animate-pulse"></div>
       
-      {/* Centered Logo with Breathing Animation */}
-      <div className="relative animate-in zoom-in fade-in duration-1000">
-        <div className="relative z-10 animate-pulse transition-transform duration-1000 ease-in-out scale-110 hover:scale-125">
-          <img 
-            src={logo} 
-            alt="Brand Logo" 
-            className="w-64 h-auto object-contain drop-shadow-[0_0_60px_rgba(255,255,255,0.2)]" 
-          />
-        </div>
+      {/* Centered Logo with Premium Breathing Animation */}
+      <div className="relative animate-in zoom-in fade-in duration-700">
+        {logo ? (
+          <div className="relative z-10 animate-pulse transition-transform duration-1000 ease-in-out scale-110">
+            <img 
+              src={logo} 
+              alt="Brand Logo" 
+              className="w-72 h-auto object-contain drop-shadow-[0_0_60px_rgba(255,255,255,0.15)]" 
+            />
+          </div>
+        ) : (
+          /* Fallback spinning ring if no logo cached at all */
+          <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+        )}
       </div>
       
-      {/* Subtle indicator that something is happening without taking away from the logo */}
-      <div className="absolute bottom-12 flex gap-1">
-        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce"></div>
+      {/* Animated dots indicator */}
+      <div className="absolute bottom-16 flex gap-2">
+        <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+        <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+        <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
       </div>
     </div>
   );
