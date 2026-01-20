@@ -79,7 +79,6 @@ export const dbOps = {
     } catch (e) { return null; }
   },
 
-  // Added Real-time User Subscription
   subscribeUser(uid: string, callback: (user: User | null) => void) {
     if (!db) return () => {};
     return onSnapshot(doc(db, "users", uid), (snap) => {
@@ -112,6 +111,17 @@ export const dbOps = {
     return onSnapshot(query(collection(db, "matches"), orderBy("createdAt", "desc")), (snap) => {
       callback(snap.docs.map(d => ({ ...sanitize(d.data()), id: d.id } as Match)));
     }, () => callback([]));
+  },
+
+  subscribeMatch(id: string, callback: (match: Match | null) => void) {
+    if (!db) return () => {};
+    return onSnapshot(doc(db, "matches", id), (snap) => {
+      if (snap.exists()) {
+        callback({ ...sanitize(snap.data()), id: snap.id } as Match);
+      } else {
+        callback(null);
+      }
+    });
   },
 
   async getMatch(id: string): Promise<Match | null> {
