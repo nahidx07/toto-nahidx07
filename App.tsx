@@ -58,7 +58,7 @@ const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   useEffect(() => {
     dbOps.getSettings().then(s => setLogo(s.logoUrl));
     
-    const duration = 2000;
+    const duration = 2500;
     const intervalTime = 50;
     const step = 100 / (duration / intervalTime);
 
@@ -66,7 +66,7 @@ const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
       setProgress(prev => {
         if (prev >= 100) {
           clearInterval(interval);
-          setTimeout(onComplete, 300);
+          setTimeout(onComplete, 500);
           return 100;
         }
         return prev + step;
@@ -77,22 +77,28 @@ const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-6 transition-opacity duration-1000">
-      <div className="relative mb-12 animate-in zoom-in duration-1000">
-        <div className="absolute inset-0 bg-blue-600/30 blur-[80px] rounded-full animate-pulse"></div>
+    <div className="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-8 overflow-hidden">
+      {/* Dynamic Background Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-600/10 blur-[120px] rounded-full animate-pulse"></div>
+      
+      <div className="relative mb-16 animate-in zoom-in fade-in duration-1000">
         <img 
           src={logo} 
-          alt="Logo" 
-          className="w-48 h-48 relative z-10 object-contain drop-shadow-[0_0_30px_rgba(37,99,235,0.6)] animate-bounce" 
+          alt="Brand Logo" 
+          className="w-56 h-auto relative z-10 object-contain drop-shadow-[0_0_50px_rgba(255,255,255,0.15)] transition-transform" 
         />
       </div>
-      <div className="max-w-xs w-full">
-        <div className="w-full bg-slate-900 h-1 rounded-full overflow-hidden border border-slate-800/50">
+
+      <div className="max-w-[200px] w-full space-y-4">
+        <div className="w-full bg-slate-900 h-[2px] rounded-full overflow-hidden border border-slate-800/30">
           <div 
-            className="h-full bg-gradient-to-r from-blue-600 to-indigo-500 rounded-full transition-all duration-300 ease-out"
+            className="h-full bg-blue-500 transition-all duration-300 ease-out"
             style={{ width: `${progress}%` }}
           ></div>
         </div>
+        <p className="text-center text-[8px] font-black uppercase text-slate-600 tracking-[0.4em] animate-pulse">
+          Loading Arena
+        </p>
       </div>
     </div>
   );
@@ -114,7 +120,6 @@ const App: React.FC = () => {
           setUser(dbUser);
           setLoading(false);
         } else {
-          // If user authenticated but no doc in Firestore, create it
           const firebaseUser = auth?.currentUser;
           if (firebaseUser) {
             const newUser: User = {
@@ -133,13 +138,11 @@ const App: React.FC = () => {
     };
 
     const initialize = async () => {
-      // 1. Telegram Auto-Login
       const tg = (window as any).Telegram?.WebApp;
       if (tg?.initDataUnsafe?.user) {
         const tgUser = tg.initDataUnsafe.user;
         const uid = `tg_${tgUser.id}`;
         
-        // Initial check and creation
         let dbUser = await dbOps.getUser(uid);
         if (!dbUser) {
           dbUser = {
@@ -160,7 +163,6 @@ const App: React.FC = () => {
         return;
       }
 
-      // 2. Firebase Sync
       if (isFirebaseConfigured && auth) {
         authUnsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
           if (firebaseUser) {
