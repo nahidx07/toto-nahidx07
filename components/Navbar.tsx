@@ -8,35 +8,34 @@ import { PlatformSettings } from '../types';
 
 const Navbar: React.FC = () => {
   const { user } = useAuth();
-  const [settings, setSettings] = useState<PlatformSettings>({
-    logoUrl: 'https://cdn-icons-png.flaticon.com/512/732/732232.png',
-    telegramLink: '#'
-  });
+  // Check localStorage first for instant display
+  const [logoUrl, setLogoUrl] = useState<string | null>(localStorage.getItem('toto_cached_logo'));
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
         const s = await dbOps.getSettings();
-        setSettings(s);
+        setLogoUrl(s.logoUrl);
       } catch (err) {
         console.error("Settings load failed:", err);
       }
     };
     fetchSettings();
-    const int = setInterval(fetchSettings, 10000);
+    const int = setInterval(fetchSettings, 60000); // Check for updates every 1m
     return () => clearInterval(int);
   }, []);
 
   return (
     <nav className="bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-800">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center group py-1">
-          {/* Bigger Logo, No Text */}
-          <img 
-            src={settings.logoUrl} 
-            alt="Logo" 
-            className="h-10 w-auto object-contain transition-transform group-hover:scale-105 duration-300" 
-          />
+        <Link to="/" className="flex items-center group py-1 min-w-[40px]">
+          {logoUrl && (
+            <img 
+              src={logoUrl} 
+              alt="Logo" 
+              className="h-10 w-auto object-contain transition-transform group-hover:scale-105 duration-300" 
+            />
+          )}
         </Link>
 
         <div className="hidden md:flex items-center gap-6">
