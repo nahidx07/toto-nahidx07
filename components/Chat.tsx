@@ -2,21 +2,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../App';
 import { dbOps } from '../firebase';
-import { ChatMessage, Rank } from '../types';
+import { ChatMessage } from '../types';
 import { getRankStyles } from '../constants';
-import { GoogleGenAI } from "@google/genai";
 
 interface ChatProps {
   matchId: string;
-  matchTitle?: string;
 }
 
-const Chat: React.FC<ChatProps> = ({ matchId, matchTitle }) => {
+const Chat: React.FC<ChatProps> = ({ matchId }) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
-  const [mode, setMode] = useState<'live' | 'ai'>('live');
-  const [aiLoading, setAiLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,7 +24,7 @@ const Chat: React.FC<ChatProps> = ({ matchId, matchTitle }) => {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, aiLoading]);
+  }, [messages]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,140 +33,81 @@ const Chat: React.FC<ChatProps> = ({ matchId, matchTitle }) => {
     const messageContent = input.trim();
     setInput('');
 
-    if (mode === 'live') {
-      try {
-        await dbOps.sendChatMessage(matchId, {
-          userId: user.uid,
-          username: user.username,
-          message: messageContent,
-          rank: user.rank,
-          photoUrl: user.photoUrl
-        });
-      } catch (err) {
-        setInput(messageContent);
-      }
-    } else {
-      setAiLoading(true);
-      const userMsg: ChatMessage = {
-        id: 'local-' + Date.now(),
+    try {
+      await dbOps.sendChatMessage(matchId, {
         userId: user.uid,
         username: user.username,
         message: messageContent,
-        timestamp: Date.now(),
         rank: user.rank,
         photoUrl: user.photoUrl
-      };
-      setMessages(prev => [...prev, userMsg]);
-
-      try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: messageContent,
-          config: {
-            systemInstruction: `You are 'Toto AI Scout', a world-class sports analyst for the Toto Stream platform. The user is currently watching '${matchTitle || 'a live match'}'. Answer sports questions with expert insight, keeping it concise and exciting. If the user asks non-sports questions, politely redirect them to the match. Use emojis for flair.`
-          }
-        });
-
-        const aiMsg: ChatMessage = {
-          id: 'ai-' + Date.now(),
-          userId: 'toto-ai',
-          username: 'Toto AI Scout',
-          message: response.text || "Sorry, I'm currently processing a lot of data. Try again in a moment!",
-          timestamp: Date.now(),
-          rank: Rank.GRANDMASTER,
-          photoUrl: 'https://cdn-icons-png.flaticon.com/512/4712/4712035.png',
-          isAI: true
-        };
-        setMessages(prev => [...prev, aiMsg]);
-      } catch (err) {
-        console.error("Gemini Error:", err);
-        const errorMsg: ChatMessage = {
-          id: 'error-' + Date.now(),
-          userId: 'toto-ai',
-          username: 'Toto AI Scout',
-          message: "⚠️ My scouting reports are temporarily unavailable. Please make sure the API_KEY is set in your environment.",
-          timestamp: Date.now(),
-          rank: Rank.GRANDMASTER,
-          photoUrl: 'https://cdn-icons-png.flaticon.com/512/4712/4712035.png',
-          isAI: true
-        };
-        setMessages(prev => [...prev, errorMsg]);
-      } finally {
-        setAiLoading(false);
-      }
+      });
+    } catch (err) {
+      setInput(messageContent);
+      console.error("Chat Error:", err);
     }
   };
 
   return (
-    <div className="bg-slate-900 flex flex-col h-full rounded-[32px] border border-slate-800 overflow-hidden shadow-2xl">
-      <div className="p-4 border-b border-slate-800 bg-slate-800/20 backdrop-blur-xl flex justify-between items-center">
-        <div className="flex gap-1 bg-slate-950/50 p-1 rounded-2xl border border-slate-800">
-           <button 
-             onClick={() => setMode('live')}
-             className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all ${mode === 'live' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-500 hover:text-slate-300'}`}
-           >
-             Live Chat
-           </button>
-           <button 
-             onClick={() => setMode('ai')}
-             className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-1.5 ${mode === 'ai' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40' : 'text-slate-500 hover:text-slate-300'}`}
-           >
-             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-             AI Scout
-           </button>
-        </div>
-        <span className="text-[8px] text-slate-600 font-black tracking-[0.2em] uppercase">TOTO-RTX</span>
+    <div className="bg-slate-900/50 backdrop-blur-md flex flex-col h-full rounded-[32px] border border-slate-800 overflow-hidden shadow-2xl">
+      <div className="p-4 border-b border-slate-800/50 bg-slate-800/20 flex justify-between items-center">
+        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400 flex items-center gap-2">
+          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+          Live Interaction
+        </h3>
+        <span className="text-[8px] text-slate-600 font-black tracking-widest uppercase">Community Arena</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
+        {messages.length === 0 && (
+          <div className="h-full flex flex-col items-center justify-center opacity-20 select-none">
+            <svg className="w-12 h-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <p className="text-[10px] font-black uppercase tracking-widest">No messages yet</p>
+          </div>
+        )}
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex gap-3 animate-in fade-in slide-in-from-bottom-1 duration-300 ${msg.isAI ? 'bg-indigo-600/5 p-3 rounded-2xl border border-indigo-500/10' : ''}`}>
-            <img src={msg.photoUrl} className={`w-8 h-8 rounded-full border object-cover flex-shrink-0 ${msg.isAI ? 'border-indigo-500 shadow-lg shadow-indigo-900/20' : 'border-slate-700'}`} alt="" />
-            <div className="space-y-1 min-w-0 flex-1">
+          <div key={msg.id} className="flex gap-3 animate-in fade-in slide-in-from-bottom-1 duration-300">
+            <img src={msg.photoUrl} className="w-7 h-7 rounded-full border border-slate-700 object-cover flex-shrink-0" alt="" />
+            <div className="space-y-0.5 min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${getRankStyles(msg.rank).bg} ${getRankStyles(msg.rank).color}`}>
+                <span className={`text-[7px] font-black px-1 py-0.5 rounded-md uppercase ${getRankStyles(msg.rank).bg} ${getRankStyles(msg.rank).color}`}>
                   {msg.rank}
                 </span>
-                <span className={`text-xs font-bold truncate ${msg.isAI ? 'text-indigo-400' : 'text-slate-300'}`}>{msg.username}</span>
+                <span className="text-[11px] font-bold truncate text-slate-400">{msg.username}</span>
               </div>
-              <p className={`text-sm leading-relaxed ${msg.isAI ? 'text-slate-200 italic' : 'text-slate-100'}`}>
+              <p className="text-sm leading-snug text-slate-100">
                 {msg.message}
               </p>
             </div>
           </div>
         ))}
-        {aiLoading && (
-          <div className="flex gap-3 animate-pulse">
-             <div className="w-8 h-8 rounded-full bg-indigo-900/50"></div>
-             <div className="space-y-2 flex-1">
-                <div className="h-2 w-20 bg-indigo-900/50 rounded"></div>
-                <div className="h-10 w-full bg-indigo-900/20 rounded-xl"></div>
-             </div>
-          </div>
-        )}
         <div ref={chatEndRef} />
       </div>
 
-      <div className="p-4 border-t border-slate-800 bg-slate-900/50">
+      <div className="p-4 border-t border-slate-800/50 bg-slate-950/30">
         {user ? (
           <form onSubmit={handleSend} className="flex gap-2">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={mode === 'live' ? "Join the chat..." : "Ask AI Scout about the game..."}
-              className={`flex-1 bg-slate-950 border text-white rounded-2xl px-5 py-3 text-sm focus:outline-none transition-all placeholder:text-slate-600 ${mode === 'live' ? 'border-slate-800 focus:border-blue-500' : 'border-indigo-900/50 focus:border-indigo-500'}`}
+              placeholder="Type your message..."
+              className="flex-1 bg-slate-900 border border-slate-800 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-blue-500 transition-all placeholder:text-slate-600"
             />
             <button 
               type="submit" 
-              className={`text-white p-3 rounded-2xl transition-all shadow-lg active:scale-95 ${mode === 'live' ? 'bg-blue-600 shadow-blue-900/40 hover:bg-blue-500' : 'bg-indigo-600 shadow-indigo-900/40 hover:bg-indigo-500'}`}
+              className="bg-blue-600 text-white p-2.5 rounded-xl shadow-lg shadow-blue-900/20 hover:bg-blue-500 transition-all active:scale-90"
             >
-              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+              </svg>
             </button>
           </form>
         ) : (
-          <div className="text-center py-2"><p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Login to join the arena</p></div>
+          <div className="text-center py-2">
+            <p className="text-[9px] font-black uppercase text-slate-600 tracking-widest">Log in to chat</p>
+          </div>
         )}
       </div>
     </div>
