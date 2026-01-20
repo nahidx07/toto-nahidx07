@@ -73,9 +73,9 @@ const Home: React.FC = () => {
             <div className="relative aspect-video bg-slate-800 overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent z-10 opacity-80" />
               <img 
-                src={`https://api.dicebear.com/7.x/identicon/svg?seed=${match.title}`} 
+                src={match.thumbnailUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${match.title}`} 
                 alt={match.title}
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-40"
+                className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ${match.thumbnailUrl ? 'opacity-100' : 'opacity-40'}`}
               />
               
               <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
