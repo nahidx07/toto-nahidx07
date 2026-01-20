@@ -16,16 +16,16 @@ const StreamPage: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      const fetchMatch = async () => {
-        const found = await dbOps.getMatch(id);
-        if (found) {
-          setMatch(found);
+      // Use real-time subscription for match data (watching count, title, etc.)
+      const unsubscribe = dbOps.subscribeMatch(id, (updatedMatch) => {
+        if (updatedMatch) {
+          setMatch(updatedMatch);
         } else {
           navigate('/');
         }
         setLoading(false);
-      };
-      fetchMatch();
+      });
+      return () => unsubscribe();
     }
   }, [id, navigate]);
 
@@ -62,19 +62,19 @@ const StreamPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-in slide-in-from-bottom-6 duration-700">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="max-w-7xl mx-auto space-y-4 animate-in slide-in-from-bottom-6 duration-700">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
           <VideoPlayer url={match.streamUrl} type={match.streamType} matchId={match.id} />
           
-          <div className="bg-slate-900/40 backdrop-blur-md rounded-[32px] p-6 border border-slate-800/60">
+          <div className="bg-slate-900/40 backdrop-blur-md rounded-[24px] p-5 border border-slate-800/60">
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <span className="bg-red-600 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1 shadow-lg shadow-red-900/10">
                   <span className="w-1 h-1 bg-white rounded-full animate-pulse"></span> Live
                 </span>
-                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">
-                  {match.sport} Broadcast
+                <span className="bg-slate-800 text-slate-300 text-[8px] font-black uppercase px-2 py-0.5 rounded-md border border-slate-700">
+                   {match.watching.toLocaleString()} watching
                 </span>
               </div>
               <h1 className="text-xl font-black text-white italic tracking-tight leading-tight">
@@ -84,7 +84,7 @@ const StreamPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="h-[600px] lg:h-[700px] sticky top-24">
+        <div className="h-[500px] lg:h-[650px] sticky top-24">
           <Chat matchId={match.id} />
         </div>
       </div>
