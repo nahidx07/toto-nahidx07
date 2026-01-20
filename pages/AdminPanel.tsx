@@ -22,6 +22,7 @@ const AdminPanel: React.FC = () => {
     sport: 'Cricket' as any,
     streamUrl: '',
     streamType: 'm3u8' as StreamType,
+    thumbnailUrl: '',
     status: 'live' as any,
     viewers: 0,
     watching: 0,
@@ -36,7 +37,6 @@ const AdminPanel: React.FC = () => {
     }
   }, [user]);
 
-  // Case 1: Not Logged In
   if (!user) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center">
@@ -52,7 +52,6 @@ const AdminPanel: React.FC = () => {
     );
   }
 
-  // Case 2: Logged In but NOT an Admin
   if (!user.isAdmin) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500">
@@ -83,7 +82,6 @@ const AdminPanel: React.FC = () => {
     );
   }
 
-  // Case 3: Success - Admin UI
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -95,7 +93,7 @@ const AdminPanel: React.FC = () => {
   };
 
   const resetForm = () => {
-    setFormData({ title: '', sport: 'Cricket', streamUrl: '', streamType: 'm3u8', status: 'live', viewers: 0, watching: 0, chatEnabled: true });
+    setFormData({ title: '', sport: 'Cricket', streamUrl: '', streamType: 'm3u8', thumbnailUrl: '', status: 'live', viewers: 0, watching: 0, chatEnabled: true });
     setEditingMatch(null);
   };
 
@@ -144,9 +142,14 @@ const AdminPanel: React.FC = () => {
             {matches.map(m => (
               <div key={m.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 group">
                 <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <span className="text-[10px] font-black uppercase text-slate-500">{m.sport}</span>
-                    <h3 className="text-white font-bold group-hover:text-blue-400 transition-colors">{m.title}</h3>
+                  <div className="flex gap-4">
+                    {m.thumbnailUrl && (
+                      <img src={m.thumbnailUrl} className="w-16 h-12 object-cover rounded-lg border border-slate-700" alt="" />
+                    )}
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-slate-500">{m.sport}</span>
+                      <h3 className="text-white font-bold group-hover:text-blue-400 transition-colors">{m.title}</h3>
+                    </div>
                   </div>
                   <div className="bg-green-900/20 px-2 py-1 rounded text-center min-w-[50px]">
                     <span className="text-xs font-black text-white">{m.watching}</span>
@@ -154,7 +157,27 @@ const AdminPanel: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => { setEditingMatch(m); setFormData({ ...m }); setShowModal(true); }} className="flex-1 bg-slate-800 text-slate-300 py-2.5 rounded-xl text-[10px] font-black uppercase">Edit</button>
+                  {/* Fix: Explicitly map properties from Match to formData and handle optional thumbnailUrl to resolve TS error */}
+                  <button 
+                    onClick={() => { 
+                      setEditingMatch(m); 
+                      setFormData({ 
+                        title: m.title,
+                        sport: m.sport,
+                        streamUrl: m.streamUrl,
+                        streamType: m.streamType,
+                        thumbnailUrl: m.thumbnailUrl || '',
+                        status: m.status,
+                        viewers: m.viewers,
+                        watching: m.watching,
+                        chatEnabled: m.chatEnabled
+                      }); 
+                      setShowModal(true); 
+                    }} 
+                    className="flex-1 bg-slate-800 text-slate-300 py-2.5 rounded-xl text-[10px] font-black uppercase"
+                  >
+                    Edit
+                  </button>
                   <button onClick={() => handleDeleteMatch(m.id)} className="flex-1 bg-red-900/20 text-red-500 py-2.5 rounded-xl text-[10px] font-black uppercase">Delete</button>
                 </div>
               </div>
@@ -191,15 +214,31 @@ const AdminPanel: React.FC = () => {
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <form onSubmit={handleSaveMatch} className="p-8 space-y-4">
-              <input type="text" placeholder="Title" required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-slate-800 border border-slate-700 text-white px-5 py-3 rounded-2xl outline-none focus:border-blue-500" />
-              <div className="grid grid-cols-2 gap-4">
-                <select value={formData.sport} onChange={e => setFormData({...formData, sport: e.target.value as any})} className="bg-slate-800 border border-slate-700 text-white px-5 py-3 rounded-2xl outline-none">
-                  <option>Cricket</option><option>Football</option><option>Other</option>
-                </select>
-                <input type="number" placeholder="Watching" value={formData.watching} onChange={e => setFormData({...formData, watching: parseInt(e.target.value)})} className="bg-slate-800 border border-slate-700 text-white px-5 py-3 rounded-2xl outline-none" />
+            <form onSubmit={handleSaveMatch} className="p-8 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div>
+                <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Title</label>
+                <input type="text" placeholder="Match Title" required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-slate-800 border border-slate-700 text-white px-5 py-3 rounded-2xl outline-none focus:border-blue-500" />
               </div>
-              <input type="text" placeholder="Stream URL" required value={formData.streamUrl} onChange={e => setFormData({...formData, streamUrl: e.target.value})} className="w-full bg-slate-800 border border-slate-700 text-white px-5 py-3 rounded-2xl outline-none" />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Sport</label>
+                  <select value={formData.sport} onChange={e => setFormData({...formData, sport: e.target.value as any})} className="w-full bg-slate-800 border border-slate-700 text-white px-5 py-3 rounded-2xl outline-none">
+                    <option>Cricket</option><option>Football</option><option>Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Watching Count</label>
+                  <input type="number" placeholder="Watching" value={formData.watching} onChange={e => setFormData({...formData, watching: parseInt(e.target.value)})} className="w-full bg-slate-800 border border-slate-700 text-white px-5 py-3 rounded-2xl outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Stream URL</label>
+                <input type="text" placeholder="Stream URL" required value={formData.streamUrl} onChange={e => setFormData({...formData, streamUrl: e.target.value})} className="w-full bg-slate-800 border border-slate-700 text-white px-5 py-3 rounded-2xl outline-none" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Thumbnail URL</label>
+                <input type="text" placeholder="https://example.com/image.jpg" value={formData.thumbnailUrl} onChange={e => setFormData({...formData, thumbnailUrl: e.target.value})} className="w-full bg-slate-800 border border-slate-700 text-white px-5 py-3 rounded-2xl outline-none focus:border-blue-500" />
+              </div>
               <div className="flex gap-4 p-4 bg-slate-800/50 rounded-2xl">
                  <label className="flex items-center gap-2 cursor-pointer">
                    <input type="radio" checked={formData.streamType === 'm3u8'} onChange={() => setFormData({...formData, streamType: 'm3u8'})} />
