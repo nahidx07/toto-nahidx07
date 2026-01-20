@@ -67,35 +67,25 @@ const StreamPage: React.FC = () => {
         <div className="lg:col-span-2 space-y-4">
           <VideoPlayer url={match.streamUrl} type={match.streamType} matchId={match.id} />
           
-          <div className="bg-slate-900/50 backdrop-blur-xl rounded-[40px] p-8 border border-slate-800 shadow-2xl">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="bg-red-600 text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-xl shadow-red-900/20">
-                    <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> Live Now
-                  </span>
-                  <span className="bg-slate-800 text-slate-400 text-[9px] font-black uppercase px-2.5 py-1 rounded-lg border border-slate-700">
-                    {match.sport}
-                  </span>
-                </div>
-                <h1 className="text-3xl font-black text-white italic tracking-tight">{match.title}</h1>
+          <div className="bg-slate-900/40 backdrop-blur-md rounded-[32px] p-6 border border-slate-800/60">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="bg-red-600 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1 shadow-lg shadow-red-900/10">
+                  <span className="w-1 h-1 bg-white rounded-full animate-pulse"></span> Live
+                </span>
+                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">
+                  {match.sport} Broadcast
+                </span>
               </div>
-
-              <div className="flex gap-4">
-                <div className="bg-green-600/10 rounded-[24px] px-6 py-4 border border-green-500/20 flex flex-col items-center">
-                  <span className="text-[9px] text-green-500 font-black uppercase tracking-widest mb-1 flex items-center gap-1">
-                    Watching
-                  </span>
-                  <span className="text-2xl font-black text-white font-mono">{match.watching.toLocaleString()}</span>
-                </div>
-              </div>
+              <h1 className="text-xl font-black text-white italic tracking-tight leading-tight">
+                {match.title}
+              </h1>
             </div>
-            {/* The information grid section has been removed from here for a cleaner look */}
           </div>
         </div>
 
-        <div className="h-[750px] sticky top-24">
-          <Chat matchId={match.id} matchTitle={match.title} />
+        <div className="h-[600px] lg:h-[700px] sticky top-24">
+          <Chat matchId={match.id} />
         </div>
       </div>
     </div>
