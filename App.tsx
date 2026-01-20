@@ -103,39 +103,87 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showSplash, setShowSplash] = useState(true);
 
+  // Correctly handle async initialization and auth cleanup
   useEffect(() => {
-    if (!isFirebaseConfigured || !auth) {
-      setLoading(false);
-      return;
-    }
+    let unsubscribe: (() => void) | undefined;
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        let dbUser = await dbOps.getUser(firebaseUser.uid);
-        if (!dbUser) {
-          dbUser = {
-            uid: firebaseUser.uid,
-            username: firebaseUser.displayName || 'Fan_' + Math.floor(Math.random() * 1000),
-            photoUrl: firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}`,
-            xp: 0,
-            rank: Rank.BRONZE,
-            isAdmin: false,
-            lastActive: Date.now()
-          };
-          await dbOps.upsertUser(dbUser);
+    const initialize = async () => {
+      // 1. Check for Telegram WebApp environment
+      const tg = (window as any).Telegram?.WebApp;
+      if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        const tgUser = tg.initDataUnsafe.user;
+        const tgId = tgUser.id.toString();
+        
+        try {
+          // Attempt to find or create user based on Telegram ID
+          let dbUser = await dbOps.getUser(`tg_${tgId}`);
+          if (!dbUser) {
+            dbUser = {
+              uid: `tg_${tgId}`,
+              username: tgUser.username || `${tgUser.first_name}${tgUser.last_name ? ' ' + tgUser.last_name : ''}`,
+              photoUrl: tgUser.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tgId}`,
+              xp: 0,
+              rank: Rank.BRONZE,
+              isAdmin: false,
+              telegramId: tgUser.id,
+              lastActive: Date.now()
+            };
+            await dbOps.upsertUser(dbUser);
+          }
+          setUser(dbUser);
+          setLoading(false);
+          tg.expand(); // Fullscreen for Telegram
+          return;
+        } catch (err) {
+          console.error("Telegram Auto-login failed:", err);
         }
-        setUser(dbUser);
-      } else {
-        setUser(null);
       }
-      setLoading(false);
-    });
 
-    return () => unsubscribe();
+      // 2. Fallback to Firebase Authentication (Google)
+      if (!isFirebaseConfigured || !auth) {
+        setLoading(false);
+        return;
+      }
+
+      unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
+          let dbUser = await dbOps.getUser(firebaseUser.uid);
+          if (!dbUser) {
+            dbUser = {
+              uid: firebaseUser.uid,
+              username: firebaseUser.displayName || 'Fan_' + Math.floor(Math.random() * 1000),
+              photoUrl: firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}`,
+              xp: 0,
+              rank: Rank.BRONZE,
+              isAdmin: false,
+              lastActive: Date.now()
+            };
+            await dbOps.upsertUser(dbUser);
+          }
+          setUser(dbUser);
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
+      });
+    };
+
+    initialize();
+
+    // The cleanup function now properly references the 'unsubscribe' variable which is set asynchronously.
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const handleLogout = () => {
-    if (auth) signOut(auth);
+    const tg = (window as any).Telegram?.WebApp;
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      // For Telegram users, we just clear local state as there is no "sign out" session
+      setUser(null);
+    } else if (auth) {
+      signOut(auth);
+    }
   };
 
   const refreshUser = async () => {
