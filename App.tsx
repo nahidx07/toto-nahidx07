@@ -2,7 +2,8 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { HashRouter, Routes, Route, Link } from 'react-router-dom';
 import { User, Rank } from './types';
-import { db } from './firebase';
+import { auth, dbOps } from './firebase';
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // Pages
 import Home from './pages/Home';
@@ -17,7 +18,6 @@ import Navbar from './components/Navbar';
 
 interface AuthContextType {
   user: User | null;
-  login: (username: string, isTelegram?: boolean, telegramId?: number, photoUrl?: string) => void;
   logout: () => void;
   refreshUser: () => void;
 }
@@ -26,10 +26,12 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const useAuth = () => useContext(AuthContext)!;
 
 const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
-  const settings = db.getSettings();
+  const [logo, setLogo] = useState('https://cdn-icons-png.flaticon.com/512/732/732232.png');
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    dbOps.getSettings().then(s => setLogo(s.logoUrl));
+    
     const duration = 5000;
     const intervalTime = 50;
     const step = 100 / (duration / intervalTime);
@@ -38,7 +40,7 @@ const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
       setProgress(prev => {
         if (prev >= 100) {
           clearInterval(interval);
-          setTimeout(onComplete, 300); // Small buffer for smoothness
+          setTimeout(onComplete, 300);
           return 100;
         }
         return prev + step;
@@ -53,12 +55,11 @@ const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
       <div className="relative mb-12 animate-in zoom-in duration-1000">
         <div className="absolute inset-0 bg-blue-600/30 blur-[80px] rounded-full animate-pulse"></div>
         <img 
-          src={settings.logoUrl} 
+          src={logo} 
           alt="Logo" 
           className="w-48 h-48 relative z-10 object-contain drop-shadow-[0_0_30px_rgba(37,99,235,0.6)] animate-bounce" 
         />
       </div>
-      
       <div className="max-w-xs w-full">
         <div className="w-full bg-slate-900 h-1 rounded-full overflow-hidden border border-slate-800/50">
           <div 
@@ -77,59 +78,38 @@ const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('toto_session');
-    if (savedUser) {
-      const parsed = JSON.parse(savedUser);
-      const dbUser = db.getUser(parsed.uid);
-      if (dbUser) setUser(dbUser);
-    }
-    setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        let dbUser = await dbOps.getUser(firebaseUser.uid);
+        if (!dbUser) {
+          // New User Creation
+          dbUser = {
+            uid: firebaseUser.uid,
+            username: firebaseUser.displayName || 'Fan_' + Math.floor(Math.random() * 1000),
+            photoUrl: firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}`,
+            xp: 0,
+            rank: Rank.BRONZE,
+            isAdmin: false,
+            lastActive: Date.now()
+          };
+          await dbOps.upsertUser(dbUser);
+        }
+        setUser(dbUser);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
 
-    // Telegram Auto Login
-    const tg = (window as any).Telegram?.WebApp;
-    if (tg?.initDataUnsafe?.user) {
-      const tUser = tg.initDataUnsafe.user;
-      const displayName = tUser.username || `${tUser.first_name} ${tUser.last_name || ''}`.trim();
-      handleLogin(displayName, true, tUser.id, tUser.photo_url);
-    }
+    return () => unsubscribe();
   }, []);
 
-  const handleLogin = (username: string, isTelegram = false, telegramId?: number, photoUrl?: string) => {
-    const uid = isTelegram ? `tg_${telegramId}` : `user_${username.toLowerCase().replace(/\s/g, '_')}`;
-    let existing = db.getUser(uid);
-    
-    if (!existing) {
-      existing = {
-        uid,
-        username,
-        xp: 0,
-        rank: Rank.BRONZE,
-        isAdmin: username.toLowerCase() === 'admin',
-        telegramId,
-        photoUrl: photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
-      };
-      db.upsertUser(existing);
-    } else {
-      // Update photo if changed
-      if (photoUrl && existing.photoUrl !== photoUrl) {
-        existing.photoUrl = photoUrl;
-        db.upsertUser(existing);
-      }
-    }
-    
-    setUser(existing);
-    localStorage.setItem('toto_session', JSON.stringify(existing));
-  };
+  const handleLogout = () => signOut(auth);
 
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('toto_session');
-  };
-
-  const refreshUser = () => {
+  const refreshUser = async () => {
     if (user) {
-      const dbUser = db.getUser(user.uid);
-      if (dbUser) setUser(dbUser);
+      const updated = await dbOps.getUser(user.uid);
+      if (updated) setUser(updated);
     }
   };
 
@@ -137,7 +117,7 @@ const App: React.FC = () => {
   if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-blue-500"></div></div>;
 
   return (
-    <AuthContext.Provider value={{ user, login: handleLogin, logout: handleLogout, refreshUser }}>
+    <AuthContext.Provider value={{ user, logout: handleLogout, refreshUser }}>
       <HashRouter>
         <div className="min-h-screen flex flex-col pb-20 md:pb-0 bg-slate-950">
           <Navbar />
