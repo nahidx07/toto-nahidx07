@@ -1,86 +1,121 @@
 
-import { PlatformSettings } from './types';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  setDoc, 
+  updateDoc, 
+  deleteDoc, 
+  onSnapshot, 
+  query, 
+  orderBy, 
+  limit, 
+  addDoc, 
+  serverTimestamp,
+  increment
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signOut, 
+  onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { PlatformSettings, User, Match, ChatMessage } from './types';
 
-class MockDatabase {
-  private data: any = {
-    users: JSON.parse(localStorage.getItem('toto_users') || '{}'),
-    matches: JSON.parse(localStorage.getItem('toto_matches') || '[]'),
-    settings: JSON.parse(localStorage.getItem('toto_settings') || JSON.stringify({
+// ==========================================
+// আপনার Firebase Config এখানে বসান
+// ==========================================
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
+export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
+
+// Database Helper Functions
+export const dbOps = {
+  // User Profile
+  async getUser(uid: string): Promise<User | null> {
+    const docRef = doc(db, "users", uid);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? (docSnap.data() as User) : null;
+  },
+
+  async upsertUser(user: Partial<User>) {
+    if (!user.uid) return;
+    const docRef = doc(db, "users", user.uid);
+    await setDoc(docRef, user, { merge: true });
+  },
+
+  // Matches
+  subscribeMatches(callback: (matches: Match[]) => void) {
+    const q = query(collection(db, "matches"), orderBy("createdAt", "desc"));
+    return onSnapshot(q, (snapshot) => {
+      const matches = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match));
+      callback(matches);
+    });
+  },
+
+  async addMatch(match: Omit<Match, 'id'>) {
+    await addDoc(collection(db, "matches"), { ...match, createdAt: Date.now() });
+  },
+
+  async updateMatch(id: string, updates: Partial<Match>) {
+    const docRef = doc(db, "matches", id);
+    await updateDoc(docRef, updates);
+  },
+
+  async deleteMatch(id: string) {
+    await deleteDoc(doc(db, "matches", id));
+  },
+
+  // Chat
+  subscribeChat(matchId: string, callback: (messages: ChatMessage[]) => void) {
+    const q = query(
+      collection(db, `matches/${matchId}/chat`), 
+      orderBy("timestamp", "asc"),
+      limit(50)
+    );
+    return onSnapshot(q, (snapshot) => {
+      const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage));
+      callback(messages);
+    });
+  },
+
+  async sendChatMessage(matchId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>) {
+    await addDoc(collection(db, `matches/${matchId}/chat`), {
+      ...message,
+      timestamp: Date.now()
+    });
+  },
+
+  // Settings
+  async getSettings(): Promise<PlatformSettings> {
+    const docRef = doc(db, "system", "settings");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) return docSnap.data() as PlatformSettings;
+    
+    // Default Settings if not exists
+    const defaults: PlatformSettings = {
       logoUrl: 'https://cdn-icons-png.flaticon.com/512/732/732232.png',
       telegramLink: 'https://t.me/your_channel'
-    })),
-    chat: {}
-  };
+    };
+    await setDoc(docRef, defaults);
+    return defaults;
+  },
 
-  constructor() {
-    if (this.data.matches.length === 0) {
-      this.data.matches = [
-        {
-          id: '1',
-          title: 'India vs Australia - Border Gavaskar Trophy',
-          sport: 'Cricket',
-          streamUrl: 'https://test-streams.mux.dev/x36xhzz/url_6/144p/index.m3u8',
-          streamType: 'm3u8',
-          status: 'live',
-          chatEnabled: true,
-          viewers: 14205,
-          watching: 4200,
-          createdAt: Date.now()
-        }
-      ];
-      this.save();
-    }
+  async updateSettings(settings: PlatformSettings) {
+    await setDoc(doc(db, "system", "settings"), settings);
   }
-
-  private save() {
-    localStorage.setItem('toto_users', JSON.stringify(this.data.users));
-    localStorage.setItem('toto_matches', JSON.stringify(this.data.matches));
-    localStorage.setItem('toto_settings', JSON.stringify(this.data.settings));
-  }
-
-  getUsers() { return Object.values(this.data.users); }
-  getMatches() { return this.data.matches; }
-  getUser(uid: string) { return this.data.users[uid]; }
-  getSettings(): PlatformSettings { return this.data.settings; }
-  
-  updateSettings(settings: PlatformSettings) {
-    this.data.settings = settings;
-    this.save();
-  }
-
-  upsertUser(user: any) {
-    this.data.users[user.uid] = user;
-    this.save();
-  }
-
-  deleteUser(uid: string) {
-    delete this.data.users[uid];
-    this.save();
-  }
-
-  addMatch(match: any) {
-    this.data.matches.push(match);
-    this.save();
-  }
-
-  updateMatch(id: string, updates: any) {
-    const idx = this.data.matches.findIndex((m: any) => m.id === id);
-    if (idx !== -1) {
-      this.data.matches[idx] = { ...this.data.matches[idx], ...updates };
-      this.save();
-    }
-  }
-
-  deleteMatch(id: string) {
-    this.data.matches = this.data.matches.filter((m: any) => m.id !== id);
-    this.save();
-  }
-
-  getChat(matchId: string) { return this.data.chat[matchId] || []; }
-  addChatMessage(matchId: string, msg: any) {
-    if (!this.data.chat[matchId]) this.data.chat[matchId] = [];
-    this.data.chat[matchId].push(msg);
-  }
-}
-
-export const db = new MockDatabase();
+};
