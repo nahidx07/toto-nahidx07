@@ -49,15 +49,15 @@ const Chat: React.FC<ChatProps> = ({ matchId }) => {
 
   return (
     <div className="bg-slate-900/60 backdrop-blur-xl flex flex-col h-full rounded-[24px] border border-slate-800/60 overflow-hidden shadow-2xl">
-      {/* Header */}
-      <div className="p-3 border-b border-slate-800/40 bg-slate-800/10 flex justify-between items-center">
-        <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-400 flex items-center gap-2">
+      {/* Header (Title) */}
+      <div className="p-4 border-b border-slate-800/40 bg-slate-800/10 flex justify-between items-center">
+        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400 flex items-center gap-2">
           <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
           Live Chat
         </h3>
       </div>
 
-      {/* Input Box - Now at the Top under Title */}
+      {/* Input Box - Directly below Title */}
       <div className="p-3 bg-slate-950/40 border-b border-slate-800/40">
         {user ? (
           <form onSubmit={handleSend} className="flex gap-2 bg-slate-900 rounded-xl p-1 border border-slate-800 focus-within:border-blue-500/50 transition-all shadow-inner">
@@ -79,16 +79,16 @@ const Chat: React.FC<ChatProps> = ({ matchId }) => {
           </form>
         ) : (
           <div className="text-center py-2 bg-slate-900/30 rounded-xl border border-dashed border-slate-800">
-            <p className="text-[8px] font-black uppercase text-slate-600 tracking-widest">Sign in to participate in chat</p>
+            <p className="text-[8px] font-black uppercase text-slate-600 tracking-widest">Sign in to participate</p>
           </div>
         )}
       </div>
 
       {/* Messages List - Newest on Top */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide flex flex-col">
         <div ref={chatTopRef} />
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center opacity-10 select-none">
+          <div className="flex-1 flex flex-col items-center justify-center opacity-10 select-none">
             <p className="text-[10px] font-black uppercase tracking-widest">No messages yet</p>
           </div>
         )}
