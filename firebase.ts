@@ -165,12 +165,19 @@ export const dbOps = {
     if (!db) return defaults;
     try {
       const d = await getDoc(doc(db, "system", "settings"));
-      return d.exists() ? sanitize(d.data()) as PlatformSettings : defaults;
+      if (d.exists()) {
+        const data = sanitize(d.data()) as PlatformSettings;
+        // Cache for faster next load
+        localStorage.setItem('toto_cached_logo', data.logoUrl);
+        return data;
+      }
+      return defaults;
     } catch (e) { return defaults; }
   },
 
   async updateSettings(settings: PlatformSettings) {
     if (!db) return;
     await setDoc(doc(db, "system", "settings"), sanitize(settings));
+    localStorage.setItem('toto_cached_logo', settings.logoUrl);
   }
 };
