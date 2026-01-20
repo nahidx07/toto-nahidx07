@@ -23,7 +23,6 @@ const Navbar: React.FC = () => {
       }
     };
     fetchSettings();
-    // Poll for settings updates every 10 seconds or rely on refresh
     const int = setInterval(fetchSettings, 10000);
     return () => clearInterval(int);
   }, []);
@@ -31,18 +30,20 @@ const Navbar: React.FC = () => {
   return (
     <nav className="bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-800">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3 group">
-          <img src={settings.logoUrl} alt="Logo" className="h-8 w-8 object-contain rounded" />
-          <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-            Toto Stream
-          </span>
+        <Link to="/" className="flex items-center group py-1">
+          {/* Bigger Logo, No Text */}
+          <img 
+            src={settings.logoUrl} 
+            alt="Logo" 
+            className="h-10 w-auto object-contain transition-transform group-hover:scale-105 duration-300" 
+          />
         </Link>
 
         <div className="hidden md:flex items-center gap-6">
-          <Link to="/" className="text-slate-300 hover:text-white transition-colors font-medium">Matches</Link>
-          <Link to="/leaderboard" className="text-slate-300 hover:text-white transition-colors font-medium">Leaderboard</Link>
+          <Link to="/" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Matches</Link>
+          <Link to="/leaderboard" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Leaderboard</Link>
           {user?.isAdmin && (
-            <Link to="/admin" className="text-slate-300 hover:text-white transition-colors font-medium">Admin</Link>
+            <Link to="/admin" className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors">Admin Panel</Link>
           )}
         </div>
 
