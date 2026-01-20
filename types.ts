@@ -36,6 +36,7 @@ export interface Match {
   sport: 'Cricket' | 'Football' | 'Basketball' | 'Tennis' | 'Other';
   streamUrl: string;
   streamType: StreamType;
+  thumbnailUrl?: string;
   status: 'live' | 'upcoming' | 'ended';
   chatEnabled: boolean;
   viewers: number;
