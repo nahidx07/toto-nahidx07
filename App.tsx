@@ -53,52 +53,39 @@ const ConfigWarning: React.FC = () => (
 
 const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   const [logo, setLogo] = useState('https://cdn-icons-png.flaticon.com/512/732/732232.png');
-  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     dbOps.getSettings().then(s => setLogo(s.logoUrl));
     
-    const duration = 2500;
-    const intervalTime = 50;
-    const step = 100 / (duration / intervalTime);
+    // Simulate initial loading/setup time
+    const timer = setTimeout(() => {
+      onComplete();
+    }, 3000);
 
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setTimeout(onComplete, 500);
-          return 100;
-        }
-        return prev + step;
-      });
-    }, intervalTime);
-
-    return () => clearInterval(interval);
+    return () => clearTimeout(timer);
   }, [onComplete]);
 
   return (
     <div className="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-8 overflow-hidden">
-      {/* Dynamic Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-600/10 blur-[120px] rounded-full animate-pulse"></div>
+      {/* Dynamic Background Glow - Pulse Effect */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-blue-600/20 blur-[100px] rounded-full animate-pulse opacity-50"></div>
       
-      <div className="relative mb-16 animate-in zoom-in fade-in duration-1000">
-        <img 
-          src={logo} 
-          alt="Brand Logo" 
-          className="w-56 h-auto relative z-10 object-contain drop-shadow-[0_0_50px_rgba(255,255,255,0.15)] transition-transform" 
-        />
-      </div>
-
-      <div className="max-w-[200px] w-full space-y-4">
-        <div className="w-full bg-slate-900 h-[2px] rounded-full overflow-hidden border border-slate-800/30">
-          <div 
-            className="h-full bg-blue-500 transition-all duration-300 ease-out"
-            style={{ width: `${progress}%` }}
-          ></div>
+      {/* Centered Logo with Breathing Animation */}
+      <div className="relative animate-in zoom-in fade-in duration-1000">
+        <div className="relative z-10 animate-pulse transition-transform duration-1000 ease-in-out scale-110 hover:scale-125">
+          <img 
+            src={logo} 
+            alt="Brand Logo" 
+            className="w-64 h-auto object-contain drop-shadow-[0_0_60px_rgba(255,255,255,0.2)]" 
+          />
         </div>
-        <p className="text-center text-[8px] font-black uppercase text-slate-600 tracking-[0.4em] animate-pulse">
-          Loading Arena
-        </p>
+      </div>
+      
+      {/* Subtle indicator that something is happening without taking away from the logo */}
+      <div className="absolute bottom-12 flex gap-1">
+        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce"></div>
       </div>
     </div>
   );
