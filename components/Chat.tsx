@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../App';
-import { db } from '../firebase';
+import { dbOps } from '../firebase';
 import { ChatMessage } from '../types';
 import { getRankStyles } from '../constants';
 
@@ -16,49 +16,52 @@ const Chat: React.FC<ChatProps> = ({ matchId }) => {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMessages(db.getChat(matchId));
-    const interval = setInterval(() => setMessages(db.getChat(matchId)), 1500);
-    return () => clearInterval(interval);
+    const unsubscribe = dbOps.subscribeChat(matchId, (msgs) => {
+      setMessages(msgs);
+    });
+    return () => unsubscribe();
   }, [matchId]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !input.trim()) return;
 
-    const newMsg: ChatMessage = {
-      id: Math.random().toString(36).substr(2, 9),
-      userId: user.uid,
-      username: user.username,
-      message: input,
-      timestamp: Date.now(),
-      rank: user.rank,
-      photoUrl: user.photoUrl
-    };
+    const messageContent = input.trim();
+    setInput(''); // Clear immediately for UX
 
-    db.addChatMessage(matchId, newMsg);
-    setMessages([...messages, newMsg]);
-    setInput('');
+    try {
+      await dbOps.sendChatMessage(matchId, {
+        userId: user.uid,
+        username: user.username,
+        message: messageContent,
+        rank: user.rank,
+        photoUrl: user.photoUrl
+      });
+    } catch (err) {
+      console.error("Chat Error:", err);
+      setInput(messageContent); // Restore on error
+    }
   };
 
   return (
-    <div className="bg-slate-900 flex flex-col h-full rounded-2xl border border-slate-800 overflow-hidden">
+    <div className="bg-slate-900 flex flex-col h-full rounded-2xl border border-slate-800 overflow-hidden shadow-2xl">
       <div className="p-4 border-b border-slate-800 bg-slate-800/20 backdrop-blur-md flex justify-between items-center">
         <h3 className="font-bold text-slate-100 flex items-center gap-2">
           <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
           Live Chat
         </h3>
-        <span className="text-[9px] text-slate-500 font-mono tracking-tighter">PROTO-TOTO-V2</span>
+        <span className="text-[9px] text-slate-500 font-mono tracking-tighter">FIRESTORE-RTC</span>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
         {messages.map((msg) => (
           <div key={msg.id} className="flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <img src={msg.photoUrl} className="w-8 h-8 rounded-full border border-slate-700 object-cover flex-shrink-0" alt="" />
-            <div className="space-y-1 min-w-0">
+            <div className="space-y-1 min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${getRankStyles(msg.rank).bg} ${getRankStyles(msg.rank).color}`}>
                   {msg.rank}
